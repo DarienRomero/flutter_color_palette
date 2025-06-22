@@ -3,11 +3,15 @@ import 'package:flutter/material.dart';
 class DataIndicator extends StatelessWidget {
   final String title;
   final String value;
+  final double width;
+  final Function() onPressed;
 
   const DataIndicator({
     super.key, 
     required this.title, 
-    required this.value
+    required this.value,
+    this.width = 40,
+    required this.onPressed,
   });
 
   @override
@@ -19,20 +23,18 @@ class DataIndicator extends StatelessWidget {
           fontWeight: FontWeight.bold,
           color: Colors.black.withOpacity(0.7)
         )),
-        Container(
-          decoration: BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 10)
-              )
-            ],
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(5)
+        SizedBox(
+          width: width,
+          child: RawMaterialButton(
+            onPressed: onPressed,
+            elevation: 0,
+            fillColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(5),
+            ),
+            padding: const EdgeInsets.all(5),
+            child: Text(value),
           ),
-          padding: const EdgeInsets.all(5),
-          child: Text(value),
         ),
       ],
     );

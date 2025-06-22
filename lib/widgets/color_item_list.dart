@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_color_palette/models/color_model.dart';
 import 'package:flutter_color_palette/widgets/color_item.dart';
+import 'package:flutter_color_palette/widgets/scroll_indicator_widget.dart';
 
 class ColorItemList extends StatelessWidget {
   final ValueNotifier<List<ColorModel>> colorModelsNotifier;
   final ValueNotifier<bool> isLoadingNotifier;
+  final Function(String) onHexSelected;
 
   const ColorItemList({
     super.key,
     required this.colorModelsNotifier,
     required this.isLoadingNotifier,
+    required this.onHexSelected,
   });
 
   @override
@@ -37,17 +40,11 @@ class ColorItemList extends StatelessWidget {
             }
             
             return SizedBox(
-              height: 100,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: colorModels.length,
-                itemBuilder: (context, index) {
-                  final item = colorModels[index];
-                  return ColorItem(colorModel: item);
-                },
-                separatorBuilder: (context, index) {
-                  return Container(width: 10);
-                },
+              height: 90,
+              child: ScrollIndicatorWidget(
+                height: 90,
+                colorModels: colorModels,
+                onHexSelected: onHexSelected,
               ),
             );
           },

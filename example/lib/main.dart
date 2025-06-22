@@ -17,9 +17,22 @@ class MyApp extends StatelessWidget {
         appBar: AppBar(
           title: const Text('Material App Bar'),
         ),
-        body: const Center(
+        body: Center(
           child: FlutterColorPalette(
-            imageProvider: AssetImage("assets/big-image.jpg"),
+            width: 350,
+            imageProvider: const AssetImage("assets/big-image.jpg"),
+            onHexSelected: (hex) {
+              print("Hex selected: $hex");
+            },
+            onRedSelected: (red) {
+              print("Red selected: $red");
+            },
+            onGreenSelected: (green) {
+              print("Green selected: $green");
+            },
+            onBlueSelected: (blue) {
+              print("Blue selected: $blue");
+            },
           )
         ),
       ),

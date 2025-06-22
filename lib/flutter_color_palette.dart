@@ -11,9 +11,19 @@ import 'package:flutter_color_palette/widgets/color_palette_selectables.dart';
 
 class FlutterColorPalette extends StatefulWidget {
   final ImageProvider<Object> imageProvider;
+  final Function(String) onHexSelected;
+  final Function(int) onRedSelected;
+  final Function(int) onGreenSelected;
+  final Function(int) onBlueSelected;
+  final double width;
   const FlutterColorPalette({
     super.key,
-    required this.imageProvider
+    required this.imageProvider,
+    required this.onHexSelected,
+    required this.onRedSelected,
+    required this.onGreenSelected,
+    required this.onBlueSelected,
+    this.width = 300,
   });
 
   @override
@@ -49,17 +59,15 @@ class _FlutterColorPaletteState extends State<FlutterColorPalette> {
   
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 20
-      ),
+    return SizedBox(
+      width: widget.width,
       child: Column(
         children: [
           ValueListenableBuilder<Uint8List?>(
             valueListenable: _imageBytesNotifier,
             builder: (context, imageBytes, child) {
               return FlexibleImageWidget(
-                width: 300,
+                width: widget.width,
                 imageProvider: widget.imageProvider,
                 imageBytes: imageBytes,
                 onColorDetected: (color) {
@@ -71,6 +79,10 @@ class _FlutterColorPaletteState extends State<FlutterColorPalette> {
           Container(height: 20),
           ColorPaletteSelectables(
             colorDetectedNotifier: _colorDetectedNotifier,
+            onHexSelected: widget.onHexSelected,
+            onRedSelected: widget.onRedSelected,
+            onGreenSelected: widget.onGreenSelected,
+            onBlueSelected: widget.onBlueSelected,
           ),
           Container(height: 30),
           Text(
@@ -85,6 +97,7 @@ class _FlutterColorPaletteState extends State<FlutterColorPalette> {
           ColorItemList(
             colorModelsNotifier: _colorModelsNotifier,
             isLoadingNotifier: _isLoadingNotifier,
+            onHexSelected: widget.onHexSelected,
           ),
         ],
       ),
