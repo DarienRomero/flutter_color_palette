@@ -28,8 +28,8 @@ class ScrollIndicatorWidget extends StatefulWidget {
 
 class _ScrollIndicatorWidgetState extends State<ScrollIndicatorWidget> {
   final ScrollController _scrollController = ScrollController();
-  bool _showLeftIndicator = false;
-  bool _showRightIndicator = true;
+  final ValueNotifier<bool> _showLeftIndicatorNotifier = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> _showRightIndicatorNotifier = ValueNotifier<bool>(true);
 
   @override
   void initState() {
@@ -41,10 +41,8 @@ class _ScrollIndicatorWidgetState extends State<ScrollIndicatorWidget> {
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.position.pixels;
     
-    setState(() {
-      _showLeftIndicator = currentScroll > 0;
-      _showRightIndicator = currentScroll < maxScroll;
-    });
+    _showLeftIndicatorNotifier.value = currentScroll > 0;
+    _showRightIndicatorNotifier.value = currentScroll < maxScroll;
   }
 
   void _scrollLeft() {
@@ -90,52 +88,64 @@ class _ScrollIndicatorWidgetState extends State<ScrollIndicatorWidget> {
         ),
         
         // Indicador izquierdo
-        if (_showLeftIndicator)
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            child: GestureDetector(
-              onTap: _scrollLeft,
-              child: Container(
-                width: widget.indicatorWidth,
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.1),
-                ),
-                child: Center(
-                  child: Icon(
-                    Icons.chevron_left,
-                    color: Colors.black.withOpacity(0.6),
-                    size: 24,
+        ValueListenableBuilder<bool>(
+          valueListenable: _showLeftIndicatorNotifier,
+          builder: (context, showLeftIndicator, child) {
+            if (!showLeftIndicator) return const SizedBox.shrink();
+            
+            return Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: GestureDetector(
+                onTap: _scrollLeft,
+                child: Container(
+                  width: widget.indicatorWidth,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.1),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.chevron_left,
+                      color: Colors.black.withOpacity(0.6),
+                      size: 24,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
+        ),
         
         // Indicador derecho
-        if (_showRightIndicator)
-          Positioned(
-            right: 0,
-            top: 0,
-            bottom: 0,
-            child: GestureDetector(
-              onTap: _scrollRight,
-              child: Container(
-                width: widget.indicatorWidth,
-                decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.1)
-              ),
-              child: Center(
-                child: Icon(
-                  Icons.chevron_right,
-                  color: Colors.black.withOpacity(0.6),
-                  size: 24,
+        ValueListenableBuilder<bool>(
+          valueListenable: _showRightIndicatorNotifier,
+          builder: (context, showRightIndicator, child) {
+            if (!showRightIndicator) return const SizedBox.shrink();
+            
+            return Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              child: GestureDetector(
+                onTap: _scrollRight,
+                child: Container(
+                  width: widget.indicatorWidth,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.1)
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.chevron_right,
+                      color: Colors.black.withOpacity(0.6),
+                      size: 24,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-        )
+            );
+          },
+        ),
       ],
     );
   }
@@ -143,6 +153,8 @@ class _ScrollIndicatorWidgetState extends State<ScrollIndicatorWidget> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _showLeftIndicatorNotifier.dispose();
+    _showRightIndicatorNotifier.dispose();
     super.dispose();
   }
 } 

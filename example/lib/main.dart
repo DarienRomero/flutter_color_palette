@@ -22,16 +22,16 @@ class MyApp extends StatelessWidget {
             width: 350,
             imageProvider: const AssetImage("assets/big-image.jpg"),
             onHexSelected: (hex) {
-              print("Hex selected: $hex");
+              debugPrint("Hex selected: $hex");
             },
             onRedSelected: (red) {
-              print("Red selected: $red");
+              debugPrint("Red selected: $red");
             },
             onGreenSelected: (green) {
-              print("Green selected: $green");
+              debugPrint("Green selected: $green");
             },
             onBlueSelected: (blue) {
-              print("Blue selected: $blue");
+              debugPrint("Blue selected: $blue");
             },
           )
         ),
