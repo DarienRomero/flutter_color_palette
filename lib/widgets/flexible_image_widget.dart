@@ -5,12 +5,47 @@ import 'package:flutter_color_palette/utils/color_frequency.dart';
 import 'dart:async';
 import 'package:image/image.dart' as img;
 
+/// A widget that displays an image with interactive color detection capabilities.
+/// 
+/// This component allows users to touch and drag over an image to detect colors
+/// at specific pixel positions. It provides real-time color feedback with a visual
+/// indicator and supports dynamic height calculation based on image aspect ratio.
+/// 
+/// Key features:
+/// - Real-time color detection on touch/drag
+/// - Visual color indicator with border and shadow
+/// - Dynamic height calculation maintaining aspect ratio
+/// - Background image processing for performance
+/// - Reactive state management with ValueNotifier
+/// 
+/// Example usage:
+/// ```dart
+/// FlexibleImageWidget(
+///   imageProvider: AssetImage('assets/image.jpg'),
+///   imageBytes: imageBytes,
+///   width: 300,
+///   onColorDetected: (colorModel) => print('Detected: ${colorModel.hex}'),
+/// )
+/// ```
 class FlexibleImageWidget extends StatefulWidget {
+  /// The image provider for displaying the image
   final ImageProvider imageProvider;
+  
+  /// Raw image bytes for color detection processing
   final Uint8List? imageBytes;
+  
+  /// The width of the image widget
   final double width;
+  
+  /// Callback function triggered when a color is detected
   final Function(ColorModel color)? onColorDetected;
 
+  /// Creates a FlexibleImageWidget.
+  /// 
+  /// [imageProvider] must not be null and provides the image for display.
+  /// [imageBytes] can be null but is required for color detection functionality.
+  /// [width] defaults to 100 and determines the widget width.
+  /// [onColorDetected] is optional and handles color detection events.
   const FlexibleImageWidget({
     super.key,
     required this.imageProvider,
@@ -24,26 +59,37 @@ class FlexibleImageWidget extends StatefulWidget {
 }
 
 class _FlexibleImageWidgetState extends State<FlexibleImageWidget> {
+  /// Notifier for the currently detected color
   final ValueNotifier<ColorModel?> _detectedColorNotifier = ValueNotifier<ColorModel?>(null);
+  
+  /// Notifier for the current touch position
   final ValueNotifier<Offset?> _touchPositionNotifier = ValueNotifier<Offset?>(null);
+  
+  /// Notifier for the processed image data
   final ValueNotifier<img.Image?> _imageDataNotifier = ValueNotifier<img.Image?>(null);
+  
+  /// Notifier for the loading state
   final ValueNotifier<bool> _isLoadingNotifier = ValueNotifier<bool>(true);
+  
+  /// Notifier for the calculated dynamic height
   final ValueNotifier<double?> _dynamicHeightNotifier = ValueNotifier<double?>(null);
 
   @override
   void didUpdateWidget(FlexibleImageWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Reload image data when image bytes change
     if (oldWidget.imageBytes != widget.imageBytes && widget.imageBytes != null) {
       _loadImageData();
     }
   }
 
+  /// Loads and processes image data in the background for color detection
   Future<void> _loadImageData() async {
     try {
       final image = await compute(decodeImage, widget.imageBytes!);
       if (image != null) {
         _imageDataNotifier.value = image;
-        // Calcular la altura dinámica basada en las proporciones de la imagen
+        // Calculate dynamic height based on image proportions
         _dynamicHeightNotifier.value = (widget.width * image.height) / image.width;
         _isLoadingNotifier.value = false;
       }
@@ -52,6 +98,7 @@ class _FlexibleImageWidgetState extends State<FlexibleImageWidget> {
     }
   }
 
+  /// Handles pan update events for real-time color detection
   void _handlePanUpdate(DragUpdateDetails details) {
     final imageData = _imageDataNotifier.value;
     final isLoading = _isLoadingNotifier.value;
@@ -62,13 +109,13 @@ class _FlexibleImageWidgetState extends State<FlexibleImageWidget> {
     final RenderBox renderBox = context.findRenderObject() as RenderBox;
     final localPosition = renderBox.globalToLocal(details.globalPosition);
     
-    // Verificar que el toque esté dentro del widget
+    // Verify that the touch is within the widget bounds
     if (localPosition.dx >= 0 && 
         localPosition.dx <= widget.width && 
         localPosition.dy >= 0 && 
         localPosition.dy <= dynamicHeight) {
       
-      // Obtener el color real del pixel en la posición
+      // Get the actual pixel color at the position
       final color = _getColorAtPosition(localPosition, imageData, dynamicHeight);
 
       final colorModel = ColorModel(
@@ -85,23 +132,27 @@ class _FlexibleImageWidgetState extends State<FlexibleImageWidget> {
     }
   }
 
+  /// Extracts the color at a specific position in the image
+  /// 
+  /// This method converts touch coordinates to image pixel coordinates
+  /// and retrieves the actual color value from the image data.
   Color _getColorAtPosition(Offset position, img.Image imageData, double dynamicHeight) {
-    // Calcular la posición relativa en la imagen original
+    // Calculate relative position in the original image
     final normalizedX = position.dx / widget.width;
     final normalizedY = position.dy / dynamicHeight;
     
-    // Mapear a coordenadas de la imagen
+    // Map to image coordinates
     final imageX = (normalizedX * imageData.width).round();
     final imageY = (normalizedY * imageData.height).round();
     
-    // Asegurar que las coordenadas estén dentro de los límites
+    // Ensure coordinates are within bounds
     final clampedX = imageX.clamp(0, imageData.width - 1);
     final clampedY = imageY.clamp(0, imageData.height - 1);
     
-    // Obtener el pixel de la imagen
+    // Get the pixel from the image
     final pixel = imageData.getPixel(clampedX, clampedY);
     
-    // Convertir a Color de Flutter
+    // Convert to Flutter Color
     return Color.fromARGB(
       pixel.a.toInt(),
       pixel.r.toInt(),
@@ -110,6 +161,7 @@ class _FlexibleImageWidgetState extends State<FlexibleImageWidget> {
     );
   }
 
+  /// Handles pan end events to clear the color indicator
   void _handlePanEnd(DragEndDetails details) {
     _detectedColorNotifier.value = null;
     _touchPositionNotifier.value = null;
@@ -141,7 +193,7 @@ class _FlexibleImageWidgetState extends State<FlexibleImageWidget> {
               builder: (context, touchPosition, child) {
                 if (detectedColor != null && touchPosition != null) {
                   return Positioned(
-                    left: touchPosition.dx - 15, // Centrar el círculo (radio = 15)
+                    left: touchPosition.dx - 15, // Center the circle (radius = 15)
                     top: touchPosition.dy - 15,
                     child: Container(
                       width: 30,
