@@ -15,7 +15,9 @@ class MyApp extends StatelessWidget {
           title: const Text('Material App Bar'),
         ),
         body: const Center(
-          child: FlutterColorPalette()
+          child: FlutterColorPalette(
+            imageProvider: AssetImage("assets/flutter-img.png"),
+          )
         ),
       ),
     );

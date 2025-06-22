@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_color_palette/models/color_model.dart';
 
 class ColorItem extends StatelessWidget {
-  final Color color;
-  final String hex;
-  const ColorItem({super.key, required this.color, required this.hex});
+  final ColorModel colorModel;
+  const ColorItem({super.key, required this.colorModel});
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      key: Key(hex),
+      key: Key(colorModel.hex),
       children: [
         Container(
           width: 60,
           height: 60,
           decoration: BoxDecoration(
-            color: color,
+            color: colorModel.color,
             shape: BoxShape.circle
           ),
         ),
         Container(height: 5),
-        Text("#$hex", style: TextStyle(
+        Text(colorModel.hex, style: TextStyle(
           fontSize: 14,
           color: Colors.black.withOpacity(0.7)
         )),

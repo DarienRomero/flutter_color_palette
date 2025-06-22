@@ -1,16 +1,39 @@
 library flutter_color_palette;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_color_palette/models/color_model.dart';
+import 'package:flutter_color_palette/utils/color_frequency.dart';
+import 'package:flutter_color_palette/widgets/color_item.dart';
 import 'package:flutter_color_palette/widgets/data_indicator.dart';
+import 'package:flutter_color_palette/widgets/flexible_image_widget.dart';
 
 class FlutterColorPalette extends StatefulWidget {
-  const FlutterColorPalette({super.key});
+  final ImageProvider<Object> imageProvider;
+  const FlutterColorPalette({
+    super.key,
+    required this.imageProvider
+  });
 
   @override
   State<FlutterColorPalette> createState() => _FlutterColorPaletteState();
 }
 
 class _FlutterColorPaletteState extends State<FlutterColorPalette> {
+
+  List<ColorModel> colorModels = [];
+  ColorModel? _colorDetected;  
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_){
+      getMostFrequentColors(widget.imageProvider).then((value) {
+        setState(() {
+          colorModels = value;
+        });
+      });
+    });
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -19,9 +42,14 @@ class _FlutterColorPaletteState extends State<FlutterColorPalette> {
       ),
       child: Column(
         children: [
-          Container(
-            height: 300,
-            color: Colors.red,
+          FlexibleImageWidget(
+            width: 300,
+            imageProvider: widget.imageProvider,
+            onColorDetected: (color) {
+              setState(() {
+                _colorDetected = color;
+              });
+            },
           ),
           Container(height: 20),
           Column(
@@ -40,9 +68,9 @@ class _FlutterColorPaletteState extends State<FlutterColorPalette> {
                   Container(
                     width: 60,
                     height: 60,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.green
+                      color: _colorDetected?.color ?? Colors.green
                     ),
                   ),
                   Container(width: 20),
@@ -51,14 +79,14 @@ class _FlutterColorPaletteState extends State<FlutterColorPalette> {
                       mainAxisSize: MainAxisSize.max,
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const DataIndicator(title: "HEX", value: "#DED5E6"),
+                        DataIndicator(title: "HEX", value: _colorDetected?.hex ?? "     "),
                         Row(
                           children: [
-                            const DataIndicator(title: "R", value: "222"),
+                            DataIndicator(title: "R", value: (_colorDetected?.red.toString() ?? "0").padLeft(3, '0')),
                             Container(width: 10),
-                            const DataIndicator(title: "G", value: "213"),
+                            DataIndicator(title: "G", value: (_colorDetected?.green.toString() ?? "0").padLeft(3, '0')),
                             Container(width: 10),
-                            const DataIndicator(title: "B", value: "230"),
+                            DataIndicator(title: "B", value: (_colorDetected?.blue.toString() ?? "0").padLeft(3, '0')),
                           ],
                         ),
                       ],
@@ -68,35 +96,23 @@ class _FlutterColorPaletteState extends State<FlutterColorPalette> {
                 ],
               ),
               Container(height: 30),
-              Text("Color Palette", style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.black.withOpacity(0.7)
-              )),
+              Text(
+                "Color Palette", 
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black.withOpacity(0.7)
+                )
+              ),
               Container(height: 10),
               SizedBox(
                 height: 100,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  itemCount: 10,
+                    itemCount: colorModels.length,
                   itemBuilder: (context, index) {
-                    return Column(
-                      children: [
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle
-                          ),
-                        ),
-                        Container(height: 5),
-                        Text("#DED5E6", style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.black.withOpacity(0.7)
-                        )),
-                      ],
-                    );
+                    final item = colorModels[index];
+                    return ColorItem(colorModel: item);
                   },
                   separatorBuilder: (context, index) {
                     return Container(width: 10);

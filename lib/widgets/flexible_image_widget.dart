@@ -1,0 +1,177 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_color_palette/models/color_model.dart';
+import 'package:flutter_color_palette/utils/color_frequency.dart';
+import 'dart:async';
+import 'package:image/image.dart' as img;
+
+class FlexibleImageWidget extends StatefulWidget {
+  final ImageProvider imageProvider;
+  final double width;
+  final BoxFit fit;
+  final Function(ColorModel color)? onColorDetected;
+
+  const FlexibleImageWidget({
+    super.key,
+    required this.imageProvider,
+    this.width = 100,
+    this.fit = BoxFit.cover,
+    this.onColorDetected,
+  });
+
+  @override
+  State<FlexibleImageWidget> createState() => _FlexibleImageWidgetState();
+}
+
+class _FlexibleImageWidgetState extends State<FlexibleImageWidget> {
+  ColorModel? detectedColor;
+  Offset? touchPosition;
+  img.Image? _imageData;
+  bool _isLoading = true;
+  double? _dynamicHeight;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadImageData();
+  }
+
+  Future<void> _loadImageData() async {
+    try {
+      final imageBytes = await readImage(widget.imageProvider);
+      final image = img.decodeImage(imageBytes);
+      if (image != null) {
+        setState(() {
+          _imageData = image;
+          // Calcular la altura dinámica basada en las proporciones de la imagen
+          _dynamicHeight = (widget.width * image.height) / image.width;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _handlePanUpdate(DragUpdateDetails details) {
+    if (_imageData == null || _isLoading) return;
+
+    final RenderBox renderBox = context.findRenderObject() as RenderBox;
+    final localPosition = renderBox.globalToLocal(details.globalPosition);
+    
+    // Verificar que el toque esté dentro del widget
+    if (localPosition.dx >= 0 && 
+        localPosition.dx <= widget.width && 
+        localPosition.dy >= 0 && 
+        localPosition.dy <= (_dynamicHeight!)) {
+      
+      // Obtener el color real del pixel en la posición
+      final color = _getColorAtPosition(localPosition);
+
+      final colorModel = ColorModel(
+        color: color, 
+        hex: '#${color.value.toRadixString(16).substring(2).toUpperCase()}', 
+        red: color.red, 
+        green: color.green, 
+        blue: color.blue);
+      
+      setState(() {
+        detectedColor = colorModel;
+        touchPosition = localPosition;
+      });
+      
+      widget.onColorDetected?.call(colorModel);
+    }
+  }
+
+  Color _getColorAtPosition(Offset position) {
+    if (_imageData == null) return Colors.transparent;
+
+    // Calcular la posición relativa en la imagen original
+    final normalizedX = position.dx / widget.width;
+    final normalizedY = position.dy / (_dynamicHeight!);
+    
+    // Mapear a coordenadas de la imagen
+    final imageX = (normalizedX * _imageData!.width).round();
+    final imageY = (normalizedY * _imageData!.height).round();
+    
+    // Asegurar que las coordenadas estén dentro de los límites
+    final clampedX = imageX.clamp(0, _imageData!.width - 1);
+    final clampedY = imageY.clamp(0, _imageData!.height - 1);
+    
+    // Obtener el pixel de la imagen
+    final pixel = _imageData!.getPixel(clampedX, clampedY);
+    
+    // Convertir a Color de Flutter
+    return Color.fromARGB(
+      pixel.a.toInt(),
+      pixel.r.toInt(),
+      pixel.g.toInt(),
+      pixel.b.toInt(),
+    );
+  }
+
+  void _handlePanEnd(DragEndDetails details) {
+    setState(() {
+      detectedColor = null;
+      touchPosition = null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onPanUpdate: _isLoading ? null : _handlePanUpdate,
+      onPanEnd: _isLoading ? null : _handlePanEnd,
+      child: Stack(
+        children: [
+          Image(
+            image: widget.imageProvider,
+            width: widget.width,
+            fit: BoxFit.cover,
+          ),
+          if (_isLoading)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.3),
+                child: const Center(
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+            ),
+          if (detectedColor != null && touchPosition != null)
+            Positioned(
+              left: touchPosition!.dx - 15, // Centrar el círculo (radio = 15)
+              top: touchPosition!.dy - 15,
+              child: Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: detectedColor?.color,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _imageData = null;
+    super.dispose();
+  }
+}
