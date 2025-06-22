@@ -21,27 +21,33 @@ class FlutterColorPalette extends StatefulWidget {
 }
 
 class _FlutterColorPaletteState extends State<FlutterColorPalette> {
+  final ValueNotifier<List<ColorModel>> _colorModelsNotifier = ValueNotifier<List<ColorModel>>([]);
+  final ValueNotifier<ColorModel?> _colorDetectedNotifier = ValueNotifier<ColorModel?>(null);
+  final ValueNotifier<Uint8List?> _imageBytesNotifier = ValueNotifier<Uint8List?>(null);
+  final ValueNotifier<bool> _isLoadingNotifier = ValueNotifier<bool>(true);
 
-  List<ColorModel> colorModels = [];
-  ColorModel? _colorDetected;  
-  Uint8List? imageBytes;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_){
-      readImageData(widget.imageProvider).then((value) {
-        print("Get image bytes ${value.length}");
-        setState(() {
-          imageBytes = value;
-        });
-        getMostFrequentColors(widget.imageProvider, imageBytes!).then((value) {
-          print("Get colores ${value.length}");
-          setState(() {
-            colorModels = value;
-          });
-        });
-      });
+      _loadImageData();
     });
+  }
+
+  Future<void> _loadImageData() async {
+    try {
+      final imageBytes = await readImageData(widget.imageProvider);
+      print("Get image bytes ${imageBytes.length}");
+      _imageBytesNotifier.value = imageBytes;
+      
+      final colors = await getMostFrequentColors(widget.imageProvider, imageBytes);
+      print("Get colores ${colors.length}");
+      _colorModelsNotifier.value = colors;
+      _isLoadingNotifier.value = false;
+    } catch (e) {
+      print("Error loading image data: $e");
+      _isLoadingNotifier.value = false;
+    }
   }
   
   @override
@@ -52,14 +58,17 @@ class _FlutterColorPaletteState extends State<FlutterColorPalette> {
       ),
       child: Column(
         children: [
-          FlexibleImageWidget(
-            width: 300,
-            imageProvider: widget.imageProvider,
-            imageBytes: imageBytes,
-            onColorDetected: (color) {
-              setState(() {
-                _colorDetected = color;
-              });
+          ValueListenableBuilder<Uint8List?>(
+            valueListenable: _imageBytesNotifier,
+            builder: (context, imageBytes, child) {
+              return FlexibleImageWidget(
+                width: 300,
+                imageProvider: widget.imageProvider,
+                imageBytes: imageBytes,
+                onColorDetected: (color) {
+                  _colorDetectedNotifier.value = color;
+                },
+              );
             },
           ),
           Container(height: 20),
@@ -72,39 +81,44 @@ class _FlutterColorPaletteState extends State<FlutterColorPalette> {
                 color: Colors.black.withOpacity(0.7)
               )),
               Container(height: 10),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _colorDetected?.color ?? Colors.green
-                    ),
-                  ),
-                  Container(width: 20),
-                  Expanded(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        DataIndicator(title: "HEX", value: _colorDetected?.hex ?? "     "),
-                        Row(
+              ValueListenableBuilder<ColorModel?>(
+                valueListenable: _colorDetectedNotifier,
+                builder: (context, colorDetected, child) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: colorDetected?.color ?? Colors.green
+                        ),
+                      ),
+                      Container(width: 20),
+                      Expanded(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.max,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            DataIndicator(title: "R", value: (_colorDetected?.red.toString() ?? "0").padLeft(3, '0')),
-                            Container(width: 10),
-                            DataIndicator(title: "G", value: (_colorDetected?.green.toString() ?? "0").padLeft(3, '0')),
-                            Container(width: 10),
-                            DataIndicator(title: "B", value: (_colorDetected?.blue.toString() ?? "0").padLeft(3, '0')),
+                            DataIndicator(title: "HEX", value: colorDetected?.hex ?? "     "),
+                            Row(
+                              children: [
+                                DataIndicator(title: "R", value: (colorDetected?.red.toString() ?? "0").padLeft(3, '0')),
+                                Container(width: 10),
+                                DataIndicator(title: "G", value: (colorDetected?.green.toString() ?? "0").padLeft(3, '0')),
+                                Container(width: 10),
+                                DataIndicator(title: "B", value: (colorDetected?.blue.toString() ?? "0").padLeft(3, '0')),
+                              ],
+                            ),
                           ],
                         ),
-                      ],
-                    ),
-                  ),
-                  Container(width: 30),
-                ],
+                      ),
+                      Container(width: 30),
+                    ],
+                  );
+                },
               ),
               Container(height: 30),
               Text(
@@ -116,30 +130,43 @@ class _FlutterColorPaletteState extends State<FlutterColorPalette> {
                 )
               ),
               Container(height: 10),
-              SizedBox(
-                height: 100,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                    itemCount: colorModels.length,
-                  itemBuilder: (context, index) {
-                    final item = colorModels[index];
-                    return ColorItem(colorModel: item);
-                  },
-                  separatorBuilder: (context, index) {
-                    return Container(width: 10);
-                  },
-                ),
+              ValueListenableBuilder<List<ColorModel>>(
+                valueListenable: _colorModelsNotifier,
+                builder: (context, colorModels, child) {
+                  return ValueListenableBuilder<bool>(
+                    valueListenable: _isLoadingNotifier,
+                    builder: (context, isLoading, child) {
+                      return SizedBox(
+                        height: 100,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: colorModels.length,
+                          itemBuilder: (context, index) {
+                            final item = colorModels[index];
+                            return ColorItem(colorModel: item);
+                          },
+                          separatorBuilder: (context, index) {
+                            return Container(width: 10);
+                          },
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator()
-                ],
-              )
             ],
           )
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _colorModelsNotifier.dispose();
+    _colorDetectedNotifier.dispose();
+    _imageBytesNotifier.dispose();
+    _isLoadingNotifier.dispose();
+    super.dispose();
   }
 }

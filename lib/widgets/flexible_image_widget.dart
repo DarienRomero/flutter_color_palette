@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_color_palette/models/color_model.dart';
@@ -24,11 +26,11 @@ class FlexibleImageWidget extends StatefulWidget {
 }
 
 class _FlexibleImageWidgetState extends State<FlexibleImageWidget> {
-  ColorModel? detectedColor;
-  Offset? touchPosition;
-  img.Image? _imageData;
-  bool _isLoading = true;
-  double? _dynamicHeight;
+  final ValueNotifier<ColorModel?> _detectedColorNotifier = ValueNotifier<ColorModel?>(null);
+  final ValueNotifier<Offset?> _touchPositionNotifier = ValueNotifier<Offset?>(null);
+  final ValueNotifier<img.Image?> _imageDataNotifier = ValueNotifier<img.Image?>(null);
+  final ValueNotifier<bool> _isLoadingNotifier = ValueNotifier<bool>(true);
+  final ValueNotifier<double?> _dynamicHeightNotifier = ValueNotifier<double?>(null);
 
   @override
   void didUpdateWidget(FlexibleImageWidget oldWidget) {
@@ -42,22 +44,22 @@ class _FlexibleImageWidgetState extends State<FlexibleImageWidget> {
     try {
       final image = await compute(decodeImage, widget.imageBytes!);
       if (image != null) {
-        setState(() {
-          _imageData = image;
-          // Calcular la altura dinámica basada en las proporciones de la imagen
-          _dynamicHeight = (widget.width * image.height) / image.width;
-          _isLoading = false;
-        });
+        _imageDataNotifier.value = image;
+        // Calcular la altura dinámica basada en las proporciones de la imagen
+        _dynamicHeightNotifier.value = (widget.width * image.height) / image.width;
+        _isLoadingNotifier.value = false;
       }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      _isLoadingNotifier.value = false;
     }
   }
 
   void _handlePanUpdate(DragUpdateDetails details) {
-    if (_imageData == null || _isLoading) return;
+    final imageData = _imageDataNotifier.value;
+    final isLoading = _isLoadingNotifier.value;
+    final dynamicHeight = _dynamicHeightNotifier.value;
+    
+    if (imageData == null || isLoading || dynamicHeight == null) return;
 
     final RenderBox renderBox = context.findRenderObject() as RenderBox;
     final localPosition = renderBox.globalToLocal(details.globalPosition);
@@ -66,10 +68,10 @@ class _FlexibleImageWidgetState extends State<FlexibleImageWidget> {
     if (localPosition.dx >= 0 && 
         localPosition.dx <= widget.width && 
         localPosition.dy >= 0 && 
-        localPosition.dy <= (_dynamicHeight!)) {
+        localPosition.dy <= dynamicHeight) {
       
       // Obtener el color real del pixel en la posición
-      final color = _getColorAtPosition(localPosition);
+      final color = _getColorAtPosition(localPosition, imageData, dynamicHeight);
 
       final colorModel = ColorModel(
         color: color, 
@@ -78,32 +80,28 @@ class _FlexibleImageWidgetState extends State<FlexibleImageWidget> {
         green: color.green, 
         blue: color.blue);
       
-      setState(() {
-        detectedColor = colorModel;
-        touchPosition = localPosition;
-      });
+      _detectedColorNotifier.value = colorModel;
+      _touchPositionNotifier.value = localPosition;
       
       widget.onColorDetected?.call(colorModel);
     }
   }
 
-  Color _getColorAtPosition(Offset position) {
-    if (_imageData == null) return Colors.transparent;
-
+  Color _getColorAtPosition(Offset position, img.Image imageData, double dynamicHeight) {
     // Calcular la posición relativa en la imagen original
     final normalizedX = position.dx / widget.width;
-    final normalizedY = position.dy / (_dynamicHeight!);
+    final normalizedY = position.dy / dynamicHeight;
     
     // Mapear a coordenadas de la imagen
-    final imageX = (normalizedX * _imageData!.width).round();
-    final imageY = (normalizedY * _imageData!.height).round();
+    final imageX = (normalizedX * imageData.width).round();
+    final imageY = (normalizedY * imageData.height).round();
     
     // Asegurar que las coordenadas estén dentro de los límites
-    final clampedX = imageX.clamp(0, _imageData!.width - 1);
-    final clampedY = imageY.clamp(0, _imageData!.height - 1);
+    final clampedX = imageX.clamp(0, imageData.width - 1);
+    final clampedY = imageY.clamp(0, imageData.height - 1);
     
     // Obtener el pixel de la imagen
-    final pixel = _imageData!.getPixel(clampedX, clampedY);
+    final pixel = imageData.getPixel(clampedX, clampedY);
     
     // Convertir a Color de Flutter
     return Color.fromARGB(
@@ -115,55 +113,63 @@ class _FlexibleImageWidgetState extends State<FlexibleImageWidget> {
   }
 
   void _handlePanEnd(DragEndDetails details) {
-    setState(() {
-      detectedColor = null;
-      touchPosition = null;
-    });
+    _detectedColorNotifier.value = null;
+    _touchPositionNotifier.value = null;
   }
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        GestureDetector(
-          onPanUpdate: _isLoading ? null : _handlePanUpdate,
-          onPanEnd: _isLoading ? null : _handlePanEnd,
-          child: Image(
-            image: widget.imageProvider,
-            width: widget.width,
-            fit: BoxFit.cover,
-          ),
-        ),
-        // if (_isLoading) Positioned.fill(
-        //   child: Container(
-        //     color: Colors.black.withOpacity(0.3),
-        //     child: const Center(
-        //       child: CircularProgressIndicator(),
-        //     ),
-        //   ),
-        // ),
-        if (detectedColor != null && touchPosition != null) Positioned(
-          left: touchPosition!.dx - 15, // Centrar el círculo (radio = 15)
-          top: touchPosition!.dy - 15,
-          child: Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: detectedColor?.color,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white,
-                width: 2,
+        ValueListenableBuilder<bool>(
+          valueListenable: _isLoadingNotifier,
+          builder: (context, isLoading, child) {
+            return GestureDetector(
+              onPanUpdate: isLoading ? null : _handlePanUpdate,
+              onPanEnd: isLoading ? null : _handlePanEnd,
+              child: Image(
+                image: widget.imageProvider,
+                width: widget.width,
+                fit: BoxFit.cover,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-          ),
+            );
+          },
+        ),
+        ValueListenableBuilder<ColorModel?>(
+          valueListenable: _detectedColorNotifier,
+          builder: (context, detectedColor, child) {
+            return ValueListenableBuilder<Offset?>(
+              valueListenable: _touchPositionNotifier,
+              builder: (context, touchPosition, child) {
+                if (detectedColor != null && touchPosition != null) {
+                  return Positioned(
+                    left: touchPosition.dx - 15, // Centrar el círculo (radio = 15)
+                    top: touchPosition.dy - 15,
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: detectedColor.color,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white,
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            );
+          },
         ),
       ],
     );
@@ -171,7 +177,11 @@ class _FlexibleImageWidgetState extends State<FlexibleImageWidget> {
 
   @override
   void dispose() {
-    _imageData = null;
+    _detectedColorNotifier.dispose();
+    _touchPositionNotifier.dispose();
+    _imageDataNotifier.dispose();
+    _isLoadingNotifier.dispose();
+    _dynamicHeightNotifier.dispose();
     super.dispose();
   }
 }
