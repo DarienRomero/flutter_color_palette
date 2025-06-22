@@ -5,9 +5,9 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_color_palette/models/color_model.dart';
 import 'package:flutter_color_palette/utils/color_frequency.dart';
-import 'package:flutter_color_palette/widgets/color_item.dart';
-import 'package:flutter_color_palette/widgets/data_indicator.dart';
 import 'package:flutter_color_palette/widgets/flexible_image_widget.dart';
+import 'package:flutter_color_palette/widgets/color_item_list.dart';
+import 'package:flutter_color_palette/widgets/color_palette_selectables.dart';
 
 class FlutterColorPalette extends StatefulWidget {
   final ImageProvider<Object> imageProvider;
@@ -37,15 +37,12 @@ class _FlutterColorPaletteState extends State<FlutterColorPalette> {
   Future<void> _loadImageData() async {
     try {
       final imageBytes = await readImageData(widget.imageProvider);
-      print("Get image bytes ${imageBytes.length}");
       _imageBytesNotifier.value = imageBytes;
       
       final colors = await getMostFrequentColors(widget.imageProvider, imageBytes);
-      print("Get colores ${colors.length}");
       _colorModelsNotifier.value = colors;
       _isLoadingNotifier.value = false;
     } catch (e) {
-      print("Error loading image data: $e");
       _isLoadingNotifier.value = false;
     }
   }
@@ -72,90 +69,23 @@ class _FlutterColorPaletteState extends State<FlutterColorPalette> {
             },
           ),
           Container(height: 20),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("Color Picker", style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.black.withOpacity(0.7)
-              )),
-              Container(height: 10),
-              ValueListenableBuilder<ColorModel?>(
-                valueListenable: _colorDetectedNotifier,
-                builder: (context, colorDetected, child) {
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: colorDetected?.color ?? Colors.green
-                        ),
-                      ),
-                      Container(width: 20),
-                      Expanded(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.max,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            DataIndicator(title: "HEX", value: colorDetected?.hex ?? "     "),
-                            Row(
-                              children: [
-                                DataIndicator(title: "R", value: (colorDetected?.red.toString() ?? "0").padLeft(3, '0')),
-                                Container(width: 10),
-                                DataIndicator(title: "G", value: (colorDetected?.green.toString() ?? "0").padLeft(3, '0')),
-                                Container(width: 10),
-                                DataIndicator(title: "B", value: (colorDetected?.blue.toString() ?? "0").padLeft(3, '0')),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(width: 30),
-                    ],
-                  );
-                },
-              ),
-              Container(height: 30),
-              Text(
-                "Color Palette", 
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black.withOpacity(0.7)
-                )
-              ),
-              Container(height: 10),
-              ValueListenableBuilder<List<ColorModel>>(
-                valueListenable: _colorModelsNotifier,
-                builder: (context, colorModels, child) {
-                  return ValueListenableBuilder<bool>(
-                    valueListenable: _isLoadingNotifier,
-                    builder: (context, isLoading, child) {
-                      return SizedBox(
-                        height: 100,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: colorModels.length,
-                          itemBuilder: (context, index) {
-                            final item = colorModels[index];
-                            return ColorItem(colorModel: item);
-                          },
-                          separatorBuilder: (context, index) {
-                            return Container(width: 10);
-                          },
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ],
-          )
+          ColorPaletteSelectables(
+            colorDetectedNotifier: _colorDetectedNotifier,
+          ),
+          Container(height: 30),
+          Text(
+            "Color Palette", 
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black.withOpacity(0.7)
+            )
+          ),
+          Container(height: 10),
+          ColorItemList(
+            colorModelsNotifier: _colorModelsNotifier,
+            isLoadingNotifier: _isLoadingNotifier,
+          ),
         ],
       ),
     );

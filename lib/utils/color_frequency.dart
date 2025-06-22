@@ -71,18 +71,8 @@ Future<Uint8List> readImage(ImageProvider imageProvider) async {
 }
 
 Future<Uint8List> readImageData(ImageProvider imageProvider) async {
-  final completer = Completer<Uint8List>();
-  
-  SchedulerBinding.instance.scheduleTask(() async {
-    try {
-      final data = await readImage(imageProvider);
-      completer.complete(data);
-    } catch (e) {
-      completer.completeError(e);
-    }
-  }, Priority.animation);
-  print("Get image data");
-  return completer.future;
+  final data = await readImage(imageProvider);
+  return data;
 }
 
 /// Obtiene los colores más frecuentes de una imagen
