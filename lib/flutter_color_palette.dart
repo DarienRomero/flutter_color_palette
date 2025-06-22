@@ -1,5 +1,7 @@
 library flutter_color_palette;
 
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_color_palette/models/color_model.dart';
 import 'package:flutter_color_palette/utils/color_frequency.dart';
@@ -22,13 +24,21 @@ class _FlutterColorPaletteState extends State<FlutterColorPalette> {
 
   List<ColorModel> colorModels = [];
   ColorModel? _colorDetected;  
+  Uint8List? imageBytes;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_){
-      getMostFrequentColors(widget.imageProvider).then((value) {
+      readImageData(widget.imageProvider).then((value) {
+        print("Get image bytes ${value.length}");
         setState(() {
-          colorModels = value;
+          imageBytes = value;
+        });
+        getMostFrequentColors(widget.imageProvider, imageBytes!).then((value) {
+          print("Get colores ${value.length}");
+          setState(() {
+            colorModels = value;
+          });
         });
       });
     });
@@ -45,6 +55,7 @@ class _FlutterColorPaletteState extends State<FlutterColorPalette> {
           FlexibleImageWidget(
             width: 300,
             imageProvider: widget.imageProvider,
+            imageBytes: imageBytes,
             onColorDetected: (color) {
               setState(() {
                 _colorDetected = color;
@@ -118,6 +129,12 @@ class _FlutterColorPaletteState extends State<FlutterColorPalette> {
                     return Container(width: 10);
                   },
                 ),
+              ),
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator()
+                ],
               )
             ],
           )

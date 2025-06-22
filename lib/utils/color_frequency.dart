@@ -3,10 +3,11 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:image/image.dart' as img;
 import '../models/color_model.dart';
 
-_quantize(int r, int g, int b, {int levels = 8}) {
+int _quantize(int r, int g, int b, {int levels = 8}) {
   int factor = 256 ~/ levels;
   r = (r ~/ factor) * factor;
   g = (g ~/ factor) * factor;
@@ -14,9 +15,9 @@ _quantize(int r, int g, int b, {int levels = 8}) {
   return (r << 16) | (g << 8) | b;
 }
 
-/// Esta función se ejecuta en un isolate separado.
+/// Esta función se ejecuta en un isolate separado usando compute.
 Map<int, int> _computeColorFrequency(Uint8List imageBytes) {
-  final original = img.decodeImage(imageBytes);
+  final original = decodeImage(imageBytes);
   if (original == null) return {};
 
   // Reducción de resolución para rendimiento
@@ -39,6 +40,8 @@ Map<int, int> _computeColorFrequency(Uint8List imageBytes) {
   return colorMap;
 }
 
+/// Esta función se ejecuta en un isolate separado usando compute.
+/// Convierte un ImageProvider a Uint8List
 Future<Uint8List> readImage(ImageProvider imageProvider) async {
   final Completer<ui.Image> completer = Completer<ui.Image>();
 
@@ -67,6 +70,21 @@ Future<Uint8List> readImage(ImageProvider imageProvider) async {
   return byteData.buffer.asUint8List();
 }
 
+Future<Uint8List> readImageData(ImageProvider imageProvider) async {
+  final completer = Completer<Uint8List>();
+  
+  SchedulerBinding.instance.scheduleTask(() async {
+    try {
+      final data = await readImage(imageProvider);
+      completer.complete(data);
+    } catch (e) {
+      completer.completeError(e);
+    }
+  }, Priority.animation);
+  print("Get image data");
+  return completer.future;
+}
+
 /// Obtiene los colores más frecuentes de una imagen
 /// 
 /// [imageProvider] - El proveedor de imagen a analizar
@@ -74,15 +92,13 @@ Future<Uint8List> readImage(ImageProvider imageProvider) async {
 /// 
 /// Retorna una lista de [ColorModel] ordenados por frecuencia descendente
 Future<List<ColorModel>> getMostFrequentColors(
-  ImageProvider imageProvider, {
+  ImageProvider imageProvider, Uint8List imageBytes, {
   int maxColors = 10,
 }) async {
   try {
-    // Convertir ImageProvider a Uint8List
-    final imageBytes = await readImage(imageProvider);
     
-    // Calcular frecuencia de colores directamente
-    final colorFrequencyMap = _computeColorFrequency(imageBytes);
+    // Calcular frecuencia de colores usando compute en un isolate separado
+    final colorFrequencyMap = await compute(_computeColorFrequency, imageBytes);
     
     // Convertir el mapa de frecuencia a lista de ColorModel
     final List<ColorModel> colorModels = [];
@@ -123,4 +139,11 @@ Future<List<ColorModel>> getMostFrequentColors(
     // En caso de error, retornar lista vacía
     return [];
   }
+}
+
+/// Esta función se ejecuta en un isolate separado usando compute.
+/// Debido a que para imágenes grandes, la decodificación puede ser lenta,
+/// Decodifica una imagen desde bytes
+img.Image? decodeImage(Uint8List imageBytes) {
+  return img.decodeImage(imageBytes);
 }

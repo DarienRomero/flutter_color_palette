@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_color_palette/models/color_model.dart';
 import 'package:flutter_color_palette/utils/color_frequency.dart';
 import 'dart:async';
@@ -6,15 +7,15 @@ import 'package:image/image.dart' as img;
 
 class FlexibleImageWidget extends StatefulWidget {
   final ImageProvider imageProvider;
+  final Uint8List? imageBytes;
   final double width;
-  final BoxFit fit;
   final Function(ColorModel color)? onColorDetected;
 
   const FlexibleImageWidget({
     super.key,
     required this.imageProvider,
+    required this.imageBytes,
     this.width = 100,
-    this.fit = BoxFit.cover,
     this.onColorDetected,
   });
 
@@ -30,15 +31,16 @@ class _FlexibleImageWidgetState extends State<FlexibleImageWidget> {
   double? _dynamicHeight;
 
   @override
-  void initState() {
-    super.initState();
-    _loadImageData();
+  void didUpdateWidget(FlexibleImageWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.imageBytes != widget.imageBytes && widget.imageBytes != null) {
+      _loadImageData();
+    }
   }
 
   Future<void> _loadImageData() async {
     try {
-      final imageBytes = await readImage(widget.imageProvider);
-      final image = img.decodeImage(imageBytes);
+      final image = await compute(decodeImage, widget.imageBytes!);
       if (image != null) {
         setState(() {
           _imageData = image;
@@ -121,51 +123,49 @@ class _FlexibleImageWidgetState extends State<FlexibleImageWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onPanUpdate: _isLoading ? null : _handlePanUpdate,
-      onPanEnd: _isLoading ? null : _handlePanEnd,
-      child: Stack(
-        children: [
-          Image(
+    return Stack(
+      children: [
+        GestureDetector(
+          onPanUpdate: _isLoading ? null : _handlePanUpdate,
+          onPanEnd: _isLoading ? null : _handlePanEnd,
+          child: Image(
             image: widget.imageProvider,
             width: widget.width,
             fit: BoxFit.cover,
           ),
-          if (_isLoading)
-            Positioned.fill(
-              child: Container(
-                color: Colors.black.withOpacity(0.3),
-                child: const Center(
-                  child: CircularProgressIndicator(),
-                ),
+        ),
+        // if (_isLoading) Positioned.fill(
+        //   child: Container(
+        //     color: Colors.black.withOpacity(0.3),
+        //     child: const Center(
+        //       child: CircularProgressIndicator(),
+        //     ),
+        //   ),
+        // ),
+        if (detectedColor != null && touchPosition != null) Positioned(
+          left: touchPosition!.dx - 15, // Centrar el círculo (radio = 15)
+          top: touchPosition!.dy - 15,
+          child: Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: detectedColor?.color,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white,
+                width: 2,
               ),
-            ),
-          if (detectedColor != null && touchPosition != null)
-            Positioned(
-              left: touchPosition!.dx - 15, // Centrar el círculo (radio = 15)
-              top: touchPosition!.dy - 15,
-              child: Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: detectedColor?.color,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white,
-                    width: 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
                 ),
-              ),
+              ],
             ),
-        ],
-      ),
+          ),
+        ),
+      ],
     );
   }
 

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_color_palette/flutter_color_palette.dart';
 
-void main() => runApp(const MyApp());
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const MyApp());
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -16,7 +19,7 @@ class MyApp extends StatelessWidget {
         ),
         body: const Center(
           child: FlutterColorPalette(
-            imageProvider: AssetImage("assets/flutter-img.png"),
+            imageProvider: AssetImage("assets/big-image.jpg"),
           )
         ),
       ),
