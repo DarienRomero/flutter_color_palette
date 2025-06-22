@@ -9,6 +9,7 @@ class ColorPaletteSelectables extends StatelessWidget {
   final Function(int) onRedSelected;
   final Function(int) onGreenSelected;
   final Function(int) onBlueSelected;
+  final double width;
 
   const ColorPaletteSelectables({
     super.key,
@@ -17,6 +18,7 @@ class ColorPaletteSelectables extends StatelessWidget {
     required this.onRedSelected,
     required this.onGreenSelected,
     required this.onBlueSelected,
+    required this.width,
   });
 
   @override
@@ -51,7 +53,55 @@ class ColorPaletteSelectables extends StatelessWidget {
                   ),
                 ),
                 Container(width: 20),
-                Expanded(
+                if(width < 300) Column(
+                  children: [
+                    DataIndicator(
+                      title: "HEX", 
+                      width: 80,
+                      value: colorDetected?.hex ?? "#D0D0D0",
+                      onPressed: () {
+                        onHexSelected(colorDetected?.hex ?? "#D0D0D0");
+                      },
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Row(
+                          children: [
+                            DataIndicator(
+                              title: "R", 
+                              width: 40,
+                              value: (colorDetected?.red.toString() ?? "0").padLeft(3, '0'),
+                              onPressed: () {
+                                onRedSelected(colorDetected?.red ?? 0);
+                              },
+                            ),
+                            Container(width: 10),
+                            DataIndicator(
+                              title: "G", 
+                              width: 40,
+                              value: (colorDetected?.green.toString() ?? "0").padLeft(3, '0'),
+                              onPressed: () {
+                                onGreenSelected(colorDetected?.green ?? 0);
+                              },
+                            ),
+                            Container(width: 10),
+                            DataIndicator(
+                              title: "B", 
+                              width: 40,
+                              value: (colorDetected?.blue.toString() ?? "0").padLeft(3, '0'),
+                              onPressed: () {
+                                onBlueSelected(colorDetected?.blue ?? 0);
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                if(width >= 300) Expanded(
                   child: Row(
                     mainAxisSize: MainAxisSize.max,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,

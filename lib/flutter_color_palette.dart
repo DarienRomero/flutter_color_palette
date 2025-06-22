@@ -24,7 +24,7 @@ class FlutterColorPalette extends StatefulWidget {
     required this.onGreenSelected,
     required this.onBlueSelected,
     this.width = 300,
-  });
+  }) : assert(width >= 250, 'At least 300px width');
 
   @override
   State<FlutterColorPalette> createState() => _FlutterColorPaletteState();
@@ -83,15 +83,20 @@ class _FlutterColorPaletteState extends State<FlutterColorPalette> {
             onRedSelected: widget.onRedSelected,
             onGreenSelected: widget.onGreenSelected,
             onBlueSelected: widget.onBlueSelected,
+            width: widget.width,
           ),
           Container(height: 30),
-          Text(
-            "Color Palette", 
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.black.withOpacity(0.7)
-            )
+          Row(
+            children: [
+              Text(
+                "Color Palette", 
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black.withOpacity(0.7)
+                )
+              ),
+            ],
           ),
           Container(height: 10),
           ColorItemList(

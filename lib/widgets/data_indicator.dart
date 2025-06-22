@@ -33,7 +33,10 @@ class DataIndicator extends StatelessWidget {
               borderRadius: BorderRadius.circular(5),
             ),
             padding: const EdgeInsets.all(5),
-            child: Text(value),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(value),
+            ),
           ),
         ),
       ],

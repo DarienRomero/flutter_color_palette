@@ -40,9 +40,9 @@ class ColorItemList extends StatelessWidget {
             }
             
             return SizedBox(
-              height: 90,
+              height: 120,
               child: ScrollIndicatorWidget(
-                height: 90,
+                height: 120,
                 colorModels: colorModels,
                 onHexSelected: onHexSelected,
               ),
