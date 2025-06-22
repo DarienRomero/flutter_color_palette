@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
         ),
         body: Center(
           child: FlutterColorPalette(
-            width: 350,
+            width: 280,
             imageProvider: const AssetImage("assets/big-image.jpg"),
             onHexSelected: (hex) {
               debugPrint("Hex selected: $hex");

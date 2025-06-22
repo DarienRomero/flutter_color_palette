@@ -1,7 +1,7 @@
 name: flutter_color_palette
-description: "A new Flutter package project."
+description: "A comprehensive color palette widget for Flutter applications."
 version: 1.0.0
-homepage:
+homepage: https://github.com/DarienRomero/flutter_color_palette
 
 environment:
   sdk: ^3.5.3
