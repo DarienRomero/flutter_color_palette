@@ -11,3 +11,6 @@
 - **Memory Management**: Proper disposal of resources and ValueNotifier usage
 - **Cross-platform Support**: Works on all Flutter supported platforms
 - **Dependencies**: Uses `image` package (^4.5.4) for efficient image processing
+
+## 1.0.0
+- Update README
