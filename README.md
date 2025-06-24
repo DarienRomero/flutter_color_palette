@@ -2,7 +2,7 @@
 
 A comprehensive Flutter widget that provides interactive color detection and palette generation from images.
 
-![](https://github.com/DarienRomero/flutter_color_palette/blob/master/.github/art/flutter_color_palette.gif?raw=true)
+![](https://github.com/DarienRomero/flutter_color_palette/blob/master/.github/art/demo.gif?raw=true)
 
 **Show some ❤️ and star the repo to support the project**
 
